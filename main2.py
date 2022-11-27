@@ -9,7 +9,7 @@ from ast import literal_eval
 
 if __name__ == '__main__':
     # in case you have placed the files outside of your working directory, you need to specify a path
-    path = 'data'  # for example: 'data/movie_recommendations/'
+    path = 'data/'  # for example: 'data/movie_recommendations/'
 
     # load the movie metadata
     df_moviesmetadata = pd.read_csv(path + 'movies_metadata.csv', low_memory=False)
@@ -46,10 +46,11 @@ if __name__ == '__main__':
     df_movies = df_movies.set_index('movieId')
 
     # add vote count
-    df_movies['vote_count'] = df_movies['vote_count'].astype('int')
-    #df_movies
-
-
+    ##FH 2022-11-27 Correction getting Votes from df_mmeta
+    df_movies['vote_count'] = df_mmeta['vote_count']
+    df_movies['vote_count'] =df_movies['vote_count'].astype('int',True,'ignore')
+    ##FH 2022-11-27 Added getting title
+    df_movies['title'] = df_mmeta["title"]
     # drop na values
     df_ratings_temp = df_ratings.dropna()
 
