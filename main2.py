@@ -19,7 +19,7 @@ if __name__ == '__main__':
 
 
     # load the movie ratings
-    df_ratings=pd.read_csv(path + 'ratings_small.csv', low_memory=False)
+    df_ratings=pd.read_csv(path + 'ratings.csv', low_memory=False)
 
     print(df_ratings.shape)
     print(df_ratings.columns)
@@ -97,10 +97,14 @@ if __name__ == '__main__':
     df_ratings_filtered = df_ratings[df_ratings['userId'] == user_id]
 
     print(f'number of ratings: {df_ratings_filtered.shape[0]}')
+    #TODO: DAS IST DIE LOOP
     for movie_id, name in zip(df_movies.index, df_movies['title']):
         # check if the user has already rated a specific movie from the list
         rating_real = df_ratings.query(f'movieId == {movie_id}')['rating'].values[0] if movie_id in df_ratings_filtered['movieId'].values else 0
         # generate the prediction
+
+
+        #TODO: HIER ISR DIE VORRAUSSAGE
         rating_pred = svd_model_trained.predict(user_id, movie_id, rating_real, verbose=False)
         # add the prediction to the list of predictions
         pred_series.append([movie_id, name, rating_pred.est, rating_real])
