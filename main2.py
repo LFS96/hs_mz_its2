@@ -14,6 +14,14 @@ from ast import literal_eval
 
 def getDfMovies(df_mmeta_local):
     """
+    Diese Funktion bereitet einen DataFrame von Filmmetadata auf. Sie nimmt einen DataFrame mit allen Filmmetadata (df_mmeta_local) als Eingabe und gibt einen neuen, formatierten DataFrame (df_movies_local) zurück.
+    Zunächst wird aus dem Release-Datum des Films das Erscheinungsjahr extrahiert und in einer neuen Spalte year im DataFrame gespeichert. Wenn das Release-Datum fehlt oder nicht konvertiert werden kann, wird der Wert NaN verwendet.
+    Anschließend wird die Spalte genres des Eingabedatensatzes extrahiert und auf ihren Inhalt (Liste von Genres) transformiert. Die Spalte genres wird dann in eine Liste von Genrenamen konvertiert.
+    Der Index des DataFrames wird dann auf die Spalte movieId geändert und auf numerische Werte konvertiert.
+    Danach wird die Spalte vote_count aus dem Eingabedatensatz extrahiert und in den neuen DataFrame eingefügt. Der Datentyp von vote_count wird auf Integer konvertiert.
+    Schließlich wird auch der Titel des Films in den neuen DataFrame eingefügt.
+    Der neu formatierte DataFrame wird schließlich zurückgegeben.
+
     Formt das Data Frame entsprechend unserer Bedurfnisse
     :param df_mmeta_local: Eingelesne Datai mit MetaDaten (meist ./data/movies_metadata.csv)
     :return: Pandas DataFrame  mit  vorbereiteteten Daten
@@ -41,6 +49,17 @@ def getDfMovies(df_mmeta_local):
 
 
 def trainAndValidateCollaboration(df_ratings_local):
+    """
+    Diese Funktion trainiert und validiert ein Collaborative Filtering-Modell für Vorhersage von Bewertungen von Filmen durch Benutzer. Der Code nutzt das Python-Modul Surprise für Collaborative Filtering.
+    Zunächst werden fehlende Werte (NaN) aus dem Eingabedatensatz entfernt. Danach wird der Zeitstempel in der Spalte timestamp in ein datetime-Format konvertiert.
+    Anschließend wird das Reader-Modul von Surprise verwendet, um den Datensatz zu analysieren und in eine Dataset-Instanz zu laden. Der Datensatz enthält Benutzer-ID, Film-ID und Bewertung in Spalten userId, movieId und rating.
+    Der Datensatz wird dann in einen Trainings- und einen Testsatz aufgeteilt. Das Verhältnis wird durch den Wert von test_size festgelegt, in diesem Fall 20%.
+    Danach wird ein SVD-Modell (Singular Value Decomposition) von Surprise instanziiert und mit dem Trainingsdatensatz trainiert.
+    Schließlich wird das trainierte Modell mithilfe der Funktion cross_validate von Surprise validiert. Dabei wird der komplette Datensatz in 10 Fälle aufgeteilt und das Modell 10-fach über alle Fälle validiert. Als Messgrößen werden der Root Mean Squared Error (RMSE), der Mean Absolute Error (MAE) und der Mean Squared Error (MSE) berechnet.
+    Die Funktion gibt schließlich das trainierte und validierte SVD-Modell zurück. Zusätzlich wird ein Balkendiagramm erstellt, das den MAE für jeden Durchlauf der Cross-Validation anzeigt.
+    :param df_ratings_local:
+    :return:
+    """
     # drop na values
     df_ratings_temp = df_ratings_local.dropna()
     # convert datetime
@@ -78,6 +97,12 @@ def trainAndValidateCollaboration(df_ratings_local):
 
 def recommend_films_by_collaboration(title, n, user_id, svd_model_trained, df_movies_local):
     """
+    Diese Funktion empfiehlt Filme für einen gegebenen Benutzer basierend auf Vorhersagen des Bewertungen mithilfe eines Collaborative Filtering-Modells und den von diesem Benutzer bereits bewerteten Filmen.
+    Zunächst wird der gewählte Film angezeigt, indem der DataFrame df_movies_local nach dem angegebenen Titel durchsucht wird. Der Film wird dann anhand seines Erscheinungsjahrs gefiltert und der DataFrame df_movies_local wird auf Filme aus dem gleichen Jahr beschränkt.
+    Danach wird der DataFrame df_ratings nach Bewertungen des angegebenen Benutzers gefiltert und die Anzahl der Bewertungen wird ausgegeben.
+    Schließlich wird für jeden Film in df_movies_local eine Vorhersage der Bewertung durch den Benutzer mithilfe des übergebenen, trainierten Collaborative Filtering-Modells berechnet. Die Vorhersagen werden in einem DataFrame df_recommendations zusammengefasst, der die Filme mit ihren vorhergesagten und tatsächlichen Bewertungen enthält. Schließlich wird der DataFrame sortiert und die empfohlenen Filme werden anhand der vorhergesagten Bewertungen absteigend angezeigt. Die Anzahl der empfohlenen Filme wird durch den Wert von n festgelegt.
+
+
     Die funktion schlägt dem Nutzer Filme vor, basierend auf dem Film den er eingibt.
     Es wird dabei die Filme aus dem gleichen gewählt die dem Nutzer am besten gefallen werden (laut Prediction)
     :param title: welcher Film ist die Grundlage
@@ -90,21 +115,11 @@ def recommend_films_by_collaboration(title, n, user_id, svd_model_trained, df_mo
 
     print("Der gewählte Film:")
     chosenMovie = df_movies_local[df_movies_local['title'] == title]
-    display(chosenMovie)
-
-    genres = chosenMovie["genres"].iloc[0]
-    print(genres)
-    print("The variable, genres is of type:", type(genres))
-
     year = chosenMovie["year"].iloc[0]
-    print(year)
-    print("The variable, year is of type:", type(year))
-
     display(df_movies_local[df_movies_local['year'] == year])
 
     #filter by Year
     df_movies_local = df_movies_local[df_movies_local['year'] == year]
-
 
     df_ratings_filtered = df_ratings[df_ratings['userId'] == user_id]
 
@@ -112,15 +127,8 @@ def recommend_films_by_collaboration(title, n, user_id, svd_model_trained, df_mo
 
     pred_series = []
     for movie_id, name in zip(df_movies_local.index, df_movies_local['title']):
-        # check if the user has already rated a specific movie from the list
-
-
-        # TODO: HIER ISR DIE VORRAUSSAGE
         rating_pred = svd_model_trained.predict(user_id, movie_id, 0, verbose=False)
-
         pred_series.append([movie_id, name, rating_pred.est, 0])
-
-    # print the results
     df_recommendations = pd.DataFrame(pred_series, columns=['movieId', 'title', 'predicted_rating', 'actual_rating'])
     display(df_recommendations.sort_values(by='predicted_rating', ascending=False).head(n))
 
