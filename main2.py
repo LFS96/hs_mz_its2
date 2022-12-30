@@ -12,7 +12,7 @@ from surprise.model_selection import train_test_split, cross_validate
 from ast import literal_eval
 
 
-def getDfMovies(df_mmeta_local):
+def getDfMovies(df_meta_local):
     """
     Diese Funktion bereitet einen DataFrame von Filmmetadata auf. Sie nimmt einen DataFrame mit allen Filmmetadata (df_mmeta_local) als Eingabe und gibt einen neuen, formatierten DataFrame (df_movies_local) zurück.
     Zunächst wird aus dem Release-Datum des Films das Erscheinungsjahr extrahiert und in einer neuen Spalte year im DataFrame gespeichert. Wenn das Release-Datum fehlt oder nicht konvertiert werden kann, wird der Wert NaN verwendet.
@@ -28,23 +28,23 @@ def getDfMovies(df_mmeta_local):
     """
     df_movies_local = pd.DataFrame()
     # extract the release year
-    df_movies_local['year'] = pd.to_datetime(df_mmeta_local['release_date'], errors='coerce').apply(
+    df_movies_local['year'] = pd.to_datetime(df_meta_local['release_date'], errors='coerce').apply(
         lambda x: str(x).split('-')[0] if x != np.nan else np.nan)
 
     # extract genres
-    df_movies_local['genres'] = df_mmeta_local['genres'].fillna('[]').apply(literal_eval).apply(
+    df_movies_local['genres'] = df_meta_local['genres'].fillna('[]').apply(literal_eval).apply(
         lambda x: [i['name'] for i in x] if isinstance(x, list) else [])
 
     # change the index to movie_id
-    df_movies_local['movieId'] = pd.to_numeric(df_mmeta_local['id'])
+    df_movies_local['movieId'] = pd.to_numeric(df_meta_local['id'])
     df_movies_local = df_movies_local.set_index('movieId')
 
     # add vote count
     ##FH 2022-11-27 Correction getting Votes from df_mmeta
-    df_movies_local['vote_count'] = df_mmeta_local['vote_count']
+    df_movies_local['vote_count'] = df_meta_local['vote_count']
     df_movies_local['vote_count'] = df_movies_local['vote_count'].astype('int', True, 'ignore')
     ##FH 2022-11-27 Added getting title
-    df_movies_local['title'] = df_mmeta_local["title"]
+    df_movies_local['title'] = df_meta_local["title"]
     return df_movies_local
 
 
@@ -134,17 +134,12 @@ def recommend_films_by_collaboration(title, n, user_id, svd_model_trained, df_mo
 
 
 if __name__ == '__main__':
-    # in case you have placed the files outside of your working directory, you need to specify a path
-    path = 'data/'  # for example: 'data/movie_recommendations/'
-
-    # load the movie metadata
-    df_moviesmetadata = pd.read_csv(path + 'movies_metadata.csv', low_memory=False)
     # remove invalid records with invalid ids
-    df_mmeta = df_moviesmetadata.drop([19730, 29503, 35587])
+    df_meta = metadata.drop([19730, 29503, 35587])
     # load the movie ratings
-    df_ratings = pd.read_csv(path + 'ratings_small.csv', low_memory=False)
+    df_ratings = rating
 
-    df_movies = getDfMovies(df_mmeta)
+    df_movies = getDfMovies(df_meta)
     svd_model_trained = trainAndValidateCollaboration(df_ratings)
 
     title = 'The Dark Knight Rises'
